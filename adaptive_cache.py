@@ -15,10 +15,14 @@ def decompress(data: bytes) -> str:
     return zlib.decompress(data).decode('utf-8')
 
 class CachePolicy(BaseModel):
-    ttl: Optional[timedelta] = None
-    tti: Optional[timedelta] = None
-    max_access: Optional[int] = None
-
+    def with_ttl(self, ttl: timedelta) -> 'CachePolicy':
+        self.ttl = ttl
+        return self
+    
+    def with_tti(self, tti: timedelta) -> 'CachePolicy':
+        self.tti = tti
+        return self
+   
 class AdaptiveCache:
     def __init__(self, max_memory_mb: int, compression_threshold_kb: int):
         self.cache_data: Dict[str, Any] = {}
