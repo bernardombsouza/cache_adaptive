@@ -55,6 +55,13 @@ class AdaptiveCache:
                     if self.cache_data[key]['creation_time'] + self.cache_data[key]['policy'].ttl < datetime.now():
                         del self.cache_data[key]
                         self.lru_queue.remove(key)
+                        self.hot_keys.remove(key) if key in self.hot_keys else None
+                        return None
+                if policy.max_access:
+                    if self.cache_data[key]['access_count'] >= policy.max_access:
+                        del self.cache_data[key]
+                        self.lru_queue.remove(key)
+                        self.hot_keys.remove(key) if key in self.hot_keys else None
                         return None
             
             if key in self.hot_keys:
