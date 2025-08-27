@@ -151,6 +151,7 @@ class AdaptiveCache:
         
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
         with self.lock:
+            # ADICIONAR POLITICA DE COMPRESSAO E DESCOMPRESSAO AQUI
             if self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
                 while self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
                     lru_key = self.lru_queue.popleft()

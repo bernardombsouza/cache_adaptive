@@ -1,8 +1,10 @@
 import unittest
+from datetime import datetime, timedelta
+from freezegun import freeze_time
 import time
 
 # Substitua 'adaptive_cache' pelo nome do seu arquivo.
-from new_adaptive_cache import AdaptiveCache
+from new_adaptive_cache import AdaptiveCache, CachePolicy 
 
 # Dados de teste para reutilização
 TEST_KEY = "test_key"
@@ -66,20 +68,23 @@ class TestAdaptiveCache(unittest.TestCase):
     def test_get_updates_access_count_and_last_access_time(self):
         """Testa se o acesso a um item atualiza seus metadados."""
         print("TESTE DE ATUALIZAÇÃO DE METADADOS AO ACESSAR...")
-        self.cache.put(TEST_KEY, TEST_VALUE)
-        initial_count = self.cache.cache_data[TEST_KEY]['access_count']
-        initial_time = self.cache.cache_data[TEST_KEY]['last_access_time']
+        self.cache.put(TEST_KEY, TEST_VALUE, policy=CachePolicy(ttl=300, max_access=5, tti=100))
+        self.cache.get(TEST_KEY)  # Primeiro acesso
 
-        print("CONTANDO QUANTIDADE DE ACESSOS...", initial_count)
-        print("VERIFICANDO DATA DO ULTIMO ACESSO...", initial_time)
+        initial_count = len(self.cache.access_timestamps[TEST_KEY])
+        initial_time = datetime.fromtimestamp(self.cache.access_timestamps[TEST_KEY][-1])
+
+        print("VERIFICANDO QUANTIDADE DE ACESSOS...", len(self.cache.access_timestamps[TEST_KEY]))
+        print("VERIFICANDO ULTIMO ACESSO", self.cache.access_timestamps[TEST_KEY][-1])
         time.sleep(1)  # Garante que o tempo mude
         self.cache.get(TEST_KEY)
-        
-        print("CONTANDO QUANTIDADE DE ACESSOS APOS UM CLIQUE...", self.cache.cache_data[TEST_KEY]['access_count'])
-        print("VERIFICANDO DATA DO ULTIMO ACESSO APOS CLIQUE...", self.cache.cache_data[TEST_KEY]['last_access_time'], '\n')
+        self.cache.get(TEST_KEY)
 
-        self.assertEqual(self.cache.cache_data[TEST_KEY]['access_count'], initial_count + 1)
-        self.assertGreater(self.cache.cache_data[TEST_KEY]['last_access_time'], initial_time)
+        print("VERIFICANDO QUANTIDADE DE ACESSOS POS CLIQUE...", len(self.cache.access_timestamps[TEST_KEY]))
+        print("VERIFICANDO ULTIMO ACESSO POS CLIQUE...", self.cache.access_timestamps[TEST_KEY][-1], '\n')
+
+        self.assertEqual(len(self.cache.access_timestamps[TEST_KEY]), initial_count + 2)
+        self.assertGreater(datetime.fromtimestamp(self.cache.access_timestamps[TEST_KEY][-1]), initial_time)
 
 if __name__ == '__main__':
     unittest.main()
