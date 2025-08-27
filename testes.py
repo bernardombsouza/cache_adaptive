@@ -28,6 +28,15 @@ class TestAdaptiveCache(unittest.TestCase):
         print("VALOR DENTRO DO CACHE TEM QUE SER test_value: ", self.cache.get(TEST_KEY), '\n')
         self.assertIn(TEST_KEY, self.cache.cache_data)
         self.assertEqual(self.cache.get(TEST_KEY), TEST_VALUE)
+    
+    def test_put_updates_existing_item(self):
+        """Testa se o método put atualiza um item existente."""
+        print("TESTE DE ATUALIZAÇÃO DE VALOR...")
+        self.cache.put(TEST_KEY, "valor_antigo")
+        print("VALOR ANTIGO ", self.cache.get(TEST_KEY))
+        self.cache.put(TEST_KEY, "valor_novo")
+        print("VALOR NOVO ", self.cache.get(TEST_KEY), '\n')
+        self.assertEqual(self.cache.get(TEST_KEY), "valor_novo")
 
 
 if __name__ == '__main__':
