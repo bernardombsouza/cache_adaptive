@@ -2,26 +2,28 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, Deque
 from datetime import timedelta, datetime
 import threading
+import sys
 from collections import deque
-import time
 
 class CachePolicy(BaseModel):
     creation_time: Optional[datetime] = None
-    last_access_time: Optional[datetime] = None
     ttl:timedelta = None
     tti:timedelta = None
+    max_access: Optional[int] = None
 
     def with_ttl(self, ttl: timedelta) -> 'CachePolicy':
-        self.creation_time = datetime.now()
         self.ttl = ttl
         return self
     
     def with_tti(self, tti: timedelta) -> 'CachePolicy':
-        self.last_access_time = datetime.now()
         self.tti = tti
         return self
     
-    def expired(ttl, tti, creation_time, last_access_time) -> bool:
+    def with_max_access(self, max_access: int) -> 'CachePolicy':
+        self.max_access = max_access
+        return self
+    
+    def is_expired(ttl, tti, creation_time, last_access_time) -> bool:
         now = datetime.now()
         if ttl and creation_time:
             if now - creation_time > ttl:
@@ -36,23 +38,44 @@ class AdaptiveCache:
         self.cache_data: Dict[str, Any] = {}
         self.current_memory_usage = 0 
         self.lru_queue: Deque[str] = deque()
-
         self.max_memory_mb = max_memory_mb
         self.compression_threshold_kb = compression_threshold_kb
-        self._lock() = threading.RLock()
 
     def get(self, key: str) -> Optional[str]:
-        with self._lock:
-            if key in self.cache_data:
+        if key not in self.cache_data:
+            return None
+        
+        try:
+            if self.cache_data[key]['policy']:
                 policy: CachePolicy = self.cache_data[key]['policy']
-                if CachePolicy.expired(policy.ttl, policy.tti, policy.creation_time, policy.last_access_time):
-                    del self.cache_data[key]
-                    self.lru_queue.remove(key)
-                    return None
-                policy.last_access_time = datetime.now()
-                self.lru_queue.remove(key)
-                self.lru_queue.append(key)
-                return self.cache_data[key]['data']
+                if policy.ttl:
+                    if self.cache_data[key]['creation_time'] + self.cache_data[key]['policy'].ttl < datetime.now():
+                        del self.cache_data[key]
+                        self.lru_queue.remove(key)
+                        return None
+            self.lru_queue.remove(key)
+            self.lru_queue.append(key)
+            self.cache_data[key]['last_access_time'] = datetime.now()
+            self.cache_data[key]['access_count'] += 1
+            data_info = self.cache_data[key]
+            value = data_info['data']
+            return data_info
+        
+        except ValueError:
+            return None
+        
+
+    def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
+        self.cache_data[key] = {
+            'data': value,
+            'policy': policy,
+            'size': sys.getsizeof(value),
+            'last_access_time': datetime.now(),
+            'creation_time': datetime.now(),
+            'access_count': 1
+        }
+        self.lru_queue.append(key)
+            
 
     def refresh_policy(self, key: str, new_policy: CachePolicy):
         with self._lock:
@@ -64,4 +87,6 @@ class AdaptiveCache:
                     policy.tti = new_policy.tti
                     policy.last_access_time = datetime.now()
 
-print(CachePolicy().with_ttl(timedelta(seconds=10)).with_tti(timedelta(seconds=5)))
+    def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float):    
+        pass
+
