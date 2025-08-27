@@ -106,14 +106,8 @@ class AdaptiveCache:
             
 
     def refresh_policy(self, key: str, new_policy: CachePolicy):
-        with self._lock:
-            if key in self.cache_data:
-                policy: CachePolicy = self.cache_data[key]['policy']
-                if new_policy.ttl:
-                    policy.ttl = new_policy.ttl
-                if new_policy.tti:
-                    policy.tti = new_policy.tti
-                    policy.last_access_time = datetime.now()
+        if key in self.cache_data:
+            self.cache_data[key]['policy'] = new_policy
 
     def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float):    
         pass
