@@ -41,6 +41,9 @@ class AdaptiveCache:
         self.max_memory_mb = max_memory_mb
         self.compression_threshold_kb = compression_threshold_kb
 
+        self.hot_keys: Deque[str] = deque()
+        self.hot_key_threshold: int = 100
+
     def get(self, key: str) -> Optional[str]:
         if key not in self.cache_data:
             return None
@@ -53,19 +56,42 @@ class AdaptiveCache:
                         del self.cache_data[key]
                         self.lru_queue.remove(key)
                         return None
+            
+            if key in self.hot_keys:
+                self.hot_keys.remove(key)
+                self.hot_keys.append(key)
+            
+            if self.cache_data[key]['access_count'] > self.hot_key_threshold:
+                self.hot_keys.append(key)
+
             self.lru_queue.remove(key)
             self.lru_queue.append(key)
             self.cache_data[key]['last_access_time'] = datetime.now()
             self.cache_data[key]['access_count'] += 1
             data_info = self.cache_data[key]
             value = data_info['data']
-            return data_info
+            return value
         
         except ValueError:
             return None
         
 
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
+
+        if self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
+            while self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
+                lru_key = self.lru_queue.popleft()
+                if lru_key not in self.hot_keys:
+                    self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_key])
+                    del self.cache_data[lru_key]
+                else:
+                    self.lru_queue.append(lru_key)
+                    if self.hot_keys == self.lru_queue:
+                        lru_hot_key = self.hot_keys.popleft()
+                        self.hot_keys.remove(lru_hot_key)
+                        self.lru_queue.remove(key)
+                        self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key])
+
         self.cache_data[key] = {
             'data': value,
             'policy': policy,
@@ -74,6 +100,8 @@ class AdaptiveCache:
             'creation_time': datetime.now(),
             'access_count': 1
         }
+        
+        self.current_memory_usage += sys.getsizeof(value)
         self.lru_queue.append(key)
             
 
