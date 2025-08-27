@@ -21,6 +21,7 @@ class TestAdaptiveCache(unittest.TestCase):
 # -----------------
 # Testes do método put()
 # -----------------
+
     def test_put_adds_new_item(self):
         """Testa se o método put adiciona um novo item ao cache."""
         print('''TESTE DE INSERÇÃO DE VALOR...''')
@@ -53,6 +54,34 @@ class TestAdaptiveCache(unittest.TestCase):
         print("CONFIRMA QUE A KEY NAO EXISTE: ", self.cache.get("key_0"))
         self.assertIn("new_key", self.cache.cache_data)
         print("CONFIRMA QUE A KEY NOVA FOI ADICIONADA: ", self.cache.get("new_key"), '\n')
+
+# -----------------
+# Testes do método get()
+# -----------------
+
+    def test_get_returns_none_for_non_existent_key(self):
+        """Testa se get retorna None para uma chave inexistente."""
+        print("TESTE DE GET PARA CHAVE INEXISTENTE...")
+        self.assertIsNone(self.cache.get("chave_inexistente"))
+        print("CHAVE NAO EXISTE: ", self.cache.get("chave_inexistente"), '\n')
+
+    def test_get_updates_access_count_and_last_access_time(self):
+        """Testa se o acesso a um item atualiza seus metadados."""
+        print("TESTE DE ATUALIZAÇÃO DE METADADOS AO ACESSAR...")
+        self.cache.put(TEST_KEY, TEST_VALUE)
+        initial_count = self.cache.cache_data[TEST_KEY]['access_count']
+        initial_time = self.cache.cache_data[TEST_KEY]['last_access_time']
+
+        print("CONTANDO QUANTIDADE DE ACESSOS...", initial_count)
+        print("VERIFICANDO DATA DO ULTIMO ACESSO...", initial_time)
+        time.sleep(1)  # Garante que o tempo mude
+        self.cache.get(TEST_KEY)
+        
+        print("CONTANDO QUANTIDADE DE ACESSOS APOS UM CLIQUE...", self.cache.cache_data[TEST_KEY]['access_count'])
+        print("VERIFICANDO DATA DO ULTIMO ACESSO APOS CLIQUE...", self.cache.cache_data[TEST_KEY]['last_access_time'], '\n')
+
+        self.assertEqual(self.cache.cache_data[TEST_KEY]['access_count'], initial_count + 1)
+        self.assertGreater(self.cache.cache_data[TEST_KEY]['last_access_time'], initial_time)
 
 if __name__ == '__main__':
     unittest.main()
