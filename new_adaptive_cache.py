@@ -60,8 +60,7 @@ class AdaptiveCache:
             if key in self.hot_keys:
                 self.hot_keys.remove(key)
                 self.hot_keys.append(key)
-            
-            if self.cache_data[key]['access_count'] > self.hot_key_threshold:
+            elif self.cache_data[key]['access_count'] > self.hot_key_threshold:
                 self.hot_keys.append(key)
 
             self.lru_queue.remove(key)
@@ -82,15 +81,16 @@ class AdaptiveCache:
             while self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
                 lru_key = self.lru_queue.popleft()
                 if lru_key not in self.hot_keys:
-                    self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_key])
+                    self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_key]['data'])
                     del self.cache_data[lru_key]
                 else:
-                    self.lru_queue.append(lru_key)
                     if self.hot_keys == self.lru_queue:
                         lru_hot_key = self.hot_keys.popleft()
                         self.hot_keys.remove(lru_hot_key)
-                        self.lru_queue.remove(key)
-                        self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key])
+                        self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key][value])
+                        del self.cache_data[lru_key]
+                    else:
+                        self.lru_queue.append(lru_key)
 
         self.cache_data[key] = {
             'data': value,
@@ -102,8 +102,11 @@ class AdaptiveCache:
         }
         
         self.current_memory_usage += sys.getsizeof(value)
-        self.lru_queue.append(key)
-            
+        if key in self.lru_queue:
+            self.lru_queue.remove(key)
+            self.lru_queue.append(key)
+        else:
+            self.lru_queue.append(key)
 
     def refresh_policy(self, key: str, new_policy: CachePolicy):
         if key in self.cache_data:
