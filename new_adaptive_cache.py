@@ -109,26 +109,6 @@ class AdaptiveCache:
             for key in keys_to_remove:
                 del self.access_timestamps[key]
 
-        #     if data_info and data_info.get('policy'):
-        #     policy: CachePolicy = data_info['policy']
-        #     if policy.ttl and (data_info['creation_time'] + policy.ttl < now):
-        #         print(f"Chave '{key}' expirou por TTL.")
-        #         keys_to_remove.append(key)
-        #         del self.cache_data[key]
-        #         self.current_memory_usage -= sys.getsizeof(data_info['data'])
-
-        #     if policy.max_access and (access_count >= policy.max_access):
-        #         print(f"Chave '{key}' expirou por MAX_ACCESS.")
-        #         keys_to_remove.append(key)
-        #         del self.cache_data[key]
-        #         self.current_memory_usage -= sys.getsizeof(data_info['data'])
-
-        #     if policy.tti and (last_access_time + policy.tti < now):
-        #         print(f"Chave '{key}' expirou por TTI.")
-        #         keys_to_remove.append(key)
-        #         del self.cache_data[key]
-        #         self.current_memory_usage -= sys.getsizeof(data_info['data'])
-
         self._start_access_monitor()
 
     def get(self, key: str) -> Optional[str]:
