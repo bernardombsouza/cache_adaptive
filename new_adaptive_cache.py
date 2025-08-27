@@ -39,6 +39,8 @@ class AdaptiveCache:
         self.lru_queue: Deque[str] = deque()
         self.max_memory_mb = max_memory_mb
         self.compression_threshold_kb = compression_threshold_kb
+        self.compression_ratio_target = 0.7
+        self.enable_predictive_loading = False
 
         self.hot_keys: Deque[str] = deque()
         self.hot_key_threshold: int = 100
@@ -51,13 +53,22 @@ class AdaptiveCache:
             if self.cache_data[key]['policy']:
                 policy: CachePolicy = self.cache_data[key]['policy']
                 if policy.ttl:
-                    if self.cache_data[key]['creation_time'] + self.cache_data[key]['policy'].ttl < datetime.now():
+                    if self.cache_data[key]['creation_time'] + policy.ttl < datetime.now():
+                        print("Expirou por TTL")
                         del self.cache_data[key]
                         self.lru_queue.remove(key)
                         self.hot_keys.remove(key) if key in self.hot_keys else None
                         return None
                 if policy.max_access:
                     if self.cache_data[key]['access_count'] >= policy.max_access:
+                        print("Expirou por MAX_ACCESS")
+                        del self.cache_data[key]
+                        self.lru_queue.remove(key)
+                        self.hot_keys.remove(key) if key in self.hot_keys else None
+                        return None
+                if policy.tti:
+                    if self.cache_data[key]['last_access_time'] + policy.tti < datetime.now():
+                        print("Expirou por TTI")
                         del self.cache_data[key]
                         self.lru_queue.remove(key)
                         self.hot_keys.remove(key) if key in self.hot_keys else None
@@ -116,6 +127,9 @@ class AdaptiveCache:
     def refresh_policy(self, key: str, policy: CachePolicy):
         if key in self.cache_data:
             self.cache_data[key]['policy'] = policy
+            self.cache_data[key]['creation_time'] = datetime.now()
+            self.cache_data[key]['last_access_time'] = datetime.now()
 
-    def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float):    
-        pass
+    def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float): 
+        self.hot_key_threshold = hot_key_threshold
+        self.compression_ratio_target = compression_ratio_target
