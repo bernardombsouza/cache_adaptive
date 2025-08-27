@@ -1,10 +1,8 @@
 import unittest
-from datetime import datetime, timedelta
-from freezegun import freeze_time
 import time
 
 # Substitua 'adaptive_cache' pelo nome do seu arquivo.
-from new_adaptive_cache import AdaptiveCache, CachePolicy 
+from new_adaptive_cache import AdaptiveCache
 
 # Dados de teste para reutilização
 TEST_KEY = "test_key"
