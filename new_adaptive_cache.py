@@ -54,4 +54,14 @@ class AdaptiveCache:
                 self.lru_queue.append(key)
                 return self.cache_data[key]['data']
 
+    def refresh_policy(self, key: str, new_policy: CachePolicy):
+        with self._lock:
+            if key in self.cache_data:
+                policy: CachePolicy = self.cache_data[key]['policy']
+                if new_policy.ttl:
+                    policy.ttl = new_policy.ttl
+                if new_policy.tti:
+                    policy.tti = new_policy.tti
+                    policy.last_access_time = datetime.now()
+
 print(CachePolicy().with_ttl(timedelta(seconds=10)).with_tti(timedelta(seconds=5)))
