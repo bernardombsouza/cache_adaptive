@@ -35,7 +35,7 @@ class AdaptiveCache:
     def __init__(self, max_memory_mb: int, compression_threshold_kb: int):
         self.cache_data: Dict[str, Any] = {}
         self.current_memory_usage = 0 
-        self.list_queue_lru: Deque[str] = deque()
+        self.lru_queue: Deque[str] = deque()
 
         self.max_memory_mb = max_memory_mb
         self.compression_threshold_kb = compression_threshold_kb
@@ -44,8 +44,14 @@ class AdaptiveCache:
     def get(self, key: str) -> Optional[str]:
         with self._lock:
             if key in self.cache_data:
-                self.list_queue_lru.remove(key)
-                self.list_queue_lru.append(key)
-            pass
+                policy: CachePolicy = self.cache_data[key]['policy']
+                if CachePolicy.expired(policy.ttl, policy.tti, policy.creation_time, policy.last_access_time):
+                    del self.cache_data[key]
+                    self.lru_queue.remove(key)
+                    return None
+                policy.last_access_time = datetime.now()
+                self.lru_queue.remove(key)
+                self.lru_queue.append(key)
+                return self.cache_data[key]['data']
 
 print(CachePolicy().with_ttl(timedelta(seconds=10)).with_tti(timedelta(seconds=5)))
