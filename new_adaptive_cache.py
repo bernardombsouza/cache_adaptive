@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, Dict, Any, Deque
 from datetime import timedelta, datetime
 import threading
+from collections import deque
 import time
 
 class CachePolicy(BaseModel):
@@ -34,7 +35,7 @@ class AdaptiveCache:
     def __init__(self, max_memory_mb: int, compression_threshold_kb: int):
         self.cache_data: Dict[str, Any] = {}
         self.current_memory_usage = 0 
-        self.list_queue_lru: Deque[str] = []
+        self.list_queue_lru: Deque[str] = deque()
 
         self.max_memory_mb = max_memory_mb
         self.compression_threshold_kb = compression_threshold_kb
