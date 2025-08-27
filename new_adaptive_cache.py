@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, Deque
 from datetime import timedelta, datetime
-import threading
 import sys
 from collections import deque
 
@@ -81,7 +80,6 @@ class AdaptiveCache:
         except ValueError:
             return None
         
-
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
 
         if self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
@@ -115,10 +113,9 @@ class AdaptiveCache:
         else:
             self.lru_queue.append(key)
 
-    def refresh_policy(self, key: str, new_policy: CachePolicy):
+    def refresh_policy(self, key: str, policy: CachePolicy):
         if key in self.cache_data:
-            self.cache_data[key]['policy'] = new_policy
+            self.cache_data[key]['policy'] = policy
 
     def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float):    
         pass
-
