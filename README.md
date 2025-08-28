@@ -31,35 +31,57 @@ pip install pydantic
 pip install freezegun
 ```
 
-### Prerequisites
+A biblioteca pydantic é usada para a validação de dados da classe CachePolicy. A freezegun é utilizada nos testes para simular o tempo.
 
-What things you need to install the software and how to install them
+### Como Utilizar
 
-```
-Give examples
-```
-
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+O código principal reside na classe AdaptiveCache. Você pode instanciá-la e usar seus métodos para interagir com o cache.
 
 ```
-Give the example
+# Exemplo de uso
+from seu_modulo_aqui import AdaptiveCache, CachePolicy, BatchOperation
+from datetime import timedelta
+
+# Instancia o cache com limite de 100MB e compressão a partir de 50KB
+cache = AdaptiveCache(max_memory_mb=100, compression_threshold_kb=50)
+
+# 1. Adicionar um item com política de TTL de 60 segundos
+policy_ttl = CachePolicy().with_ttl(timedelta(seconds=60))
+cache.put("user:123", "Dados do usuario 123", policy=policy_ttl)
+
+# 2. Ler um item do cache
+dados_usuario = cache.get("user:123")
+print(f"Dados do cache: {dados_usuario}")
+
+# 3. Usar operações em lote para adicionar vários itens
+with cache.batch_operation() as batch:
+    batch.put("product:456", "Dados do produto 456")
+    batch.put("product:789", "Dados do produto 789")
+# As operações são executadas automaticamente ao sair do bloco 'with'
+
+# 4. Habilitar o carregamento preditivo e o monitoramento
+cache.configure_adaptive_behavior(
+    hot_key_threshold=10, 
+    enable_predictive_loading=True, 
+    compression_ratio_target=0.7
+)
 ```
 
-And repeat
+## Como Rodar os Testes
+
+Verifique se o seu código está em um arquivo que possa ser importado.
+
+No arquivo testes.py, ajuste o import:
 
 ```
-until finished
+from seu_modulo_aqui import AdaptiveCache, CachePolicy, BatchOperation
 ```
 
-End with an example of getting some data out of the system or using it for a little demo
+Execute o arquivo de teste a partir do seu terminal:
 
-## Running the tests
-
-Explain how to run the automated tests for this system
+```
+python -m unittest testes.py
+```
 
 ### Break down into end to end tests
 
