@@ -77,7 +77,7 @@ No arquivo testes.py, ajuste o import:
 from seu_modulo_aqui import AdaptiveCache, CachePolicy, BatchOperation
 ```
 
-Execute o arquivo de teste a partir do seu terminal:
+Execute o arquivo de teste a partir do seu terminal (pode haver um erro de compressao de dados no cache caso o arquivo nao tenha o tamanho certo para ser comprimido):
 
 ```
 python -m unittest testes.py
