@@ -18,7 +18,7 @@ Compressão de Dados: Dados maiores que um limite configurável são comprimidos
 
 Chaves "Quentes" (Hot Keys): O cache monitora a frequência de acesso e identifica chaves populares, protegendo-as da remoção por LRU. Porém se sobrarem apenas "hot_keys" na fila lru, ele faz uma nova logica de LRU apenas dentro das "hot_keys" remover as "hot_keys" que nao sao acessadas a mais tempo.
 
-Carregamento Preditivo: Com base em chaves "quentes" identificadas, o cache pode pré-carregar dados relacionados para otimizar o tempo de acesso.
+Carregamento Preditivo: Com base em chaves "quentes" identificadas, o cache pode pré-carregar dados que estão dentro do json "teste_monitor.json", onde tem uma simulação de dados de "produtos" que sempre que são vendidos, são muito procurados junto a essa chave especifica.
 
 Operações em Lote: O uso de context manager permite agrupar operações (put) para processamento em lote, melhorando a eficiência em cenários de alta carga.
 
