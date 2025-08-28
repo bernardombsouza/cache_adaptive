@@ -156,19 +156,19 @@ class AdaptiveCache:
                     lru_key = self.lru_queue.popleft()
                     if lru_key not in self.hot_keys:
                         self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_key]['data'])
-                        del self.cache_data[lru_key]
+                        self.cache_data.pop(lru_key, None)
                     else:
                         self.lru_queue.append(lru_key)
                         if len(self.hot_keys) == len(self.lru_queue):
                             lru_hot_key = self.lru_queue.popleft()
                             self.hot_keys.remove(lru_hot_key)
                             self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key]['data'])
-                            del self.cache_data[lru_key]
+                            self.cache_data.pop(lru_key, None)
 
             self.cache_data[key] = {
                 'data': stored_value,
                 'policy': policy,
-                'size': sys.getsizeof(value),
+                'size': sys.getsizeof(stored_value),
                 'creation_time': datetime.now(),
                 'compressed': is_compressed
             }
