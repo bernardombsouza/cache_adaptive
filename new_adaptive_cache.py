@@ -5,9 +5,9 @@ import sys
 from collections import deque, defaultdict
 import threading
 import time
+import json
 
 class CachePolicy(BaseModel):
-    creation_time: Optional[datetime] = None
     ttl:timedelta = None
     tti:timedelta = None
     max_access: Optional[int] = None
@@ -23,24 +23,14 @@ class CachePolicy(BaseModel):
     def with_max_access(self, max_access: int) -> 'CachePolicy':
         self.max_access = max_access
         return self
-    
-    # def is_expired(ttl, tti, creation_time, last_access_time) -> bool:
-    #     now = datetime.now()
-    #     if ttl and creation_time:
-    #         if now - creation_time > ttl:
-    #             return True
-    #     if tti and last_access_time:
-    #         if now - last_access_time > tti:
-    #             return True
-    #     return False
 
 class AdaptiveCache:
     def __init__(self, max_memory_mb: int, compression_threshold_kb: int):
         self.cache_data: Dict[str, Any] = {}
         self.lru_queue: Deque[str] = deque()
 
-        self.max_memory_mb = max_memory_mb
-        self.compression_threshold_kb = compression_threshold_kb
+        self.max_memory_mb = max_memory_mb * 1024 * 1024 
+        self.compression_threshold_kb = compression_threshold_kb * 1024  
         self.compression_ratio_target = 0.7
         self.current_memory_usage = 0 
 
@@ -49,9 +39,12 @@ class AdaptiveCache:
 
         self.hot_keys: Deque[str] = deque()
         self.hot_key_threshold: int = 100
+        self.enable_predictive_loading: bool = False
 
         self.monitor_thread: Optional[threading.Timer] = None
         self.lock = threading.RLock()
+
+        self._start_access_monitor()
 
     def _start_access_monitor(self):
         self.monitor_thread = threading.Timer(1.0, self._monitor_access_counts)
@@ -79,19 +72,19 @@ class AdaptiveCache:
                         del self.cache_data[key]
                         self.current_memory_usage -= sys.getsizeof(data_info['data'])
                 
-                if policy.tti and (last_access_time + policy.tti < now):
-                    print(f"Chave '{key}' expirou por TTI.")
-                    keys_to_remove.append(key)
-                    self.lru_queue.remove(key)
-                    del self.cache_data[key]
-                    self.current_memory_usage -= sys.getsizeof(data_info['data'])
-                
-                if policy.max_access and (current_access_count >= policy.max_access):
-                    print(f"Chave '{key}' expirou por MAX_ACCESS.")
-                    keys_to_remove.append(key)
-                    self.lru_queue.remove(key)
-                    del self.cache_data[key]
-                    self.current_memory_usage -= sys.getsizeof(data_info['data'])
+                    if policy.tti and (last_access_time + policy.tti < now):
+                        print(f"Chave '{key}' expirou por TTI.")
+                        keys_to_remove.append(key)
+                        self.lru_queue.remove(key)
+                        del self.cache_data[key]
+                        self.current_memory_usage -= sys.getsizeof(data_info['data'])
+                    
+                    if policy.max_access and (current_access_count >= policy.max_access):
+                        print(f"Chave '{key}' expirou por MAX_ACCESS.")
+                        keys_to_remove.append(key)
+                        self.lru_queue.remove(key)
+                        del self.cache_data[key]
+                        self.current_memory_usage -= sys.getsizeof(data_info['data'])
 
                 while timestamps and timestamps[0] < window_start_time:
                     timestamps.popleft()
@@ -109,6 +102,7 @@ class AdaptiveCache:
             for key in keys_to_remove:
                 del self.access_timestamps[key]
 
+        self.predictive_load()
         self._start_access_monitor()
 
     def get(self, key: str) -> Optional[str]:
@@ -126,26 +120,25 @@ class AdaptiveCache:
                 self.lru_queue.remove(key)
                 self.lru_queue.append(key)
                 return self.cache_data[key]['data']
-            
-            return None 
         
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
         with self.lock:
             # ADICIONAR POLITICA DE COMPRESSAO E DESCOMPRESSAO AQUI
             if self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
                 while self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
+                    if not self.lru_queue:
+                        break  # Evita loop infinito se cache vazio
                     lru_key = self.lru_queue.popleft()
                     if lru_key not in self.hot_keys:
                         self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_key]['data'])
                         del self.cache_data[lru_key]
                     else:
-                        if self.hot_keys == self.lru_queue:
-                            lru_hot_key = self.hot_keys.popleft()
+                        self.lru_queue.append(lru_key)
+                        if len(self.hot_keys) == len(self.lru_queue):
+                            lru_hot_key = self.lru_queue.popleft()
                             self.hot_keys.remove(lru_hot_key)
-                            self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key][value])
+                            self.current_memory_usage -= sys.getsizeof(self.cache_data[lru_hot_key]['data'])
                             del self.cache_data[lru_key]
-                        else:
-                            self.lru_queue.append(lru_key)
 
             self.cache_data[key] = {
                 'data': value,
@@ -165,8 +158,59 @@ class AdaptiveCache:
         if key in self.cache_data:
             self.cache_data[key]['policy'] = policy
             self.cache_data[key]['creation_time'] = datetime.now()
-            self.cache_data[key]['last_access_time'] = datetime.now()
+            self.access_timestamps[key].append(time.time())
 
     def configure_adaptive_behavior(self, hot_key_threshold: int, enable_predictive_loading: bool, compression_ratio_target: float): 
         self.hot_key_threshold = hot_key_threshold
         self.compression_ratio_target = compression_ratio_target
+        self.enable_predictive_loading = enable_predictive_loading
+
+    def predictive_load(self):
+        if not self.enable_predictive_loading:
+            print("Predictive loading is disabled.")
+            return
+        
+        with self.lock:
+            with open('teste_monitor.json', 'r') as arquivo:
+                dados_python = json.load(arquivo)
+                for key, value in dados_python.items():
+                    if key in self.hot_keys:
+                        for predict_key in value:
+                            if predict_key['key'] not in self.cache_data:
+                                self.put(predict_key['key'], predict_key['value'])
+                        print(f"Preloaded key: {key}")
+
+    def batch_operation(self) -> 'BatchOperation':
+        return BatchOperation(self)
+
+class BatchOperation:
+    """Gerenciador de contexto para operações em lote no cache."""
+    
+    def __init__(self, cache):
+        self.cache = cache
+        self.operations = []
+
+    def put(self, key: str, value: str, policy: Optional[Any] = None):
+        """Adiciona uma operação de 'put' à fila de processamento."""
+        self.operations.append(('put', key, value, policy))
+    
+    def __enter__(self):
+        """Método chamado ao iniciar o bloco 'with'."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Método chamado ao sair do bloco 'with'.
+        Executa todas as operações em lote.
+        """
+        # Garante que as operações sejam atômicas com um lock de threading
+        with self.cache.lock:
+            for op in self.operations:
+                op_type = op[0]
+                if op_type == 'put':
+                    _, key, value, policy = op
+                    # Chama um método privado para processar o put
+                    self.cache.put(key, value, policy)
+        
+        # Limpa a lista de operações para que possa ser reutilizada
+        self.operations.clear()
