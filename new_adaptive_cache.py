@@ -193,7 +193,6 @@ class AdaptiveCache:
 
     def predictive_load(self):
         if not self.enable_predictive_loading:
-            print("Predictive loading is disabled.")
             return
         
         with self.lock:
@@ -204,7 +203,6 @@ class AdaptiveCache:
                         for predict_key in value:
                             if predict_key['key'] not in self.cache_data:
                                 self.put(predict_key['key'], predict_key['value'])
-                        print(f"Preloaded key: {key}")
 
     def batch_operation(self) -> 'BatchOperation':
         return BatchOperation(self)
