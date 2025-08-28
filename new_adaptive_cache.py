@@ -202,7 +202,20 @@ class AdaptiveCache:
                     if key in self.hot_keys:
                         for predict_key in value:
                             if predict_key['key'] not in self.cache_data:
-                                self.put(predict_key['key'], predict_key['value'])
+                                self.cache_data[predict_key['key']] = {
+                                    'data': predict_key['value'],
+                                    'policy': None,
+                                    'size': sys.getsizeof(predict_key['value']),
+                                    'creation_time': datetime.now(),
+                                    'compressed': False
+                                }
+                                
+                                self.current_memory_usage += sys.getsizeof(value)
+                                if key in self.lru_queue:
+                                    self.lru_queue.remove(key)
+                                    self.lru_queue.append(key)
+                                else:
+                                    self.lru_queue.append(key)
 
     def batch_operation(self) -> 'BatchOperation':
         return BatchOperation(self)
