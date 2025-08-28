@@ -6,6 +6,7 @@ from collections import deque, defaultdict
 import threading
 import time
 import json
+import zlib
 
 class CachePolicy(BaseModel):
     ttl:timedelta = None
@@ -45,6 +46,12 @@ class AdaptiveCache:
         self.lock = threading.RLock()
 
         self._start_access_monitor()
+
+    def _compress_data(self, data: str) -> bytes:
+        return zlib.compress(data)
+        
+    def _decompress_data(self, data: bytes) -> str:
+        return zlib.decompress(data).decode('utf-8')
 
     def _start_access_monitor(self):
         self.monitor_thread = threading.Timer(1.0, self._monitor_access_counts)
@@ -119,13 +126,30 @@ class AdaptiveCache:
             if key in self.cache_data:
                 self.lru_queue.remove(key)
                 self.lru_queue.append(key)
-                return self.cache_data[key]['data']
+                if not self.cache_data[key]['compressed']:
+                    return self.cache_data[key]['data']
+                return self._decompress_data(self.cache_data[key]['data'])
         
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
         with self.lock:
-            # ADICIONAR POLITICA DE COMPRESSAO E DESCOMPRESSAO AQUI
-            if self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
-                while self.current_memory_usage + sys.getsizeof(value) > self.max_memory_mb:
+            value = value.encode('utf-8')
+            original_size = sys.getsizeof(value)
+            stored_value = value
+            is_compressed = False
+
+            if original_size > self.compression_threshold_kb:
+                compressed_data = self._compress_data(value)
+                compressed_size = sys.getsizeof(compressed_data)
+                
+                if compressed_size / original_size <= self.compression_ratio_target:
+                    stored_value = compressed_data
+                    is_compressed = True
+                    print(f"Comprimindo chave '{key}'. Tamanho original: {original_size} bytes. Novo tamanho: {compressed_size} bytes.")
+                else:
+                    print(f"Compressão ineficaz para '{key}'. Usando dados originais.")
+
+            if self.current_memory_usage + sys.getsizeof(stored_value) > self.max_memory_mb:
+                while self.current_memory_usage + sys.getsizeof(stored_value) > self.max_memory_mb:
                     if not self.lru_queue:
                         break  # Evita loop infinito se cache vazio
                     lru_key = self.lru_queue.popleft()
@@ -141,10 +165,11 @@ class AdaptiveCache:
                             del self.cache_data[lru_key]
 
             self.cache_data[key] = {
-                'data': value,
+                'data': stored_value,
                 'policy': policy,
                 'size': sys.getsizeof(value),
                 'creation_time': datetime.now(),
+                'compressed': is_compressed
             }
             
             self.current_memory_usage += sys.getsizeof(value)
