@@ -1,6 +1,6 @@
 # ADAPTIVE CACHE
 
-Gerenciador de Cache Inteligente em Python
+Gerenciador de Cache Inteligente em Python.
 Este projeto implementa um gerenciador de cache adaptativo em memória para aplicações Python. Ele utiliza diversas estratégias de otimização, como políticas de expiração (TTL e TTI), compressão de dados, identificação de chaves "quentes" e carregamento preditivo, para melhorar o desempenho e o uso de memória.
 
 Funcionalidades Principais
@@ -16,7 +16,7 @@ Gerenciamento de Memória: O cache remove automaticamente os itens menos recente
 
 Compressão de Dados: Dados maiores que um limite configurável são comprimidos com zlib para economizar memória.
 
-Chaves "Quentes" (Hot Keys): O cache monitora a frequência de acesso e identifica chaves populares, protegendo-as da remoção por LRU.
+Chaves "Quentes" (Hot Keys): O cache monitora a frequência de acesso e identifica chaves populares, protegendo-as da remoção por LRU. Porém se sobrarem apenas "hot_keys" na fila lru, ele faz uma nova logica de LRU apenas dentro das "hot_keys" remover as "hot_keys" que nao sao acessadas a mais tempo.
 
 Carregamento Preditivo: Com base em chaves "quentes" identificadas, o cache pode pré-carregar dados relacionados para otimizar o tempo de acesso.
 

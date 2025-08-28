@@ -1,1 +1,25 @@
-{"product:1": [{"key": "product:2", "value": "Dados do Produto 2"}], "product:2": [{"key": "product:3", "value": "Dados do Produto 3"}], "product:3": [{"key": "product:4", "value": "Dados do Produto 4"}], "user:101": [{"key": "user:102", "value": "Dados do Usu\u00e1rio 102"}], "user:102": [{"key": "user:103", "value": "Dados do Usu\u00e1rio 103"}]}
+{
+"key_tenis": [
+    {"key": "key_meia", "value": "Esse é o valor da meia"},
+    {"key": "key_camiseta", "value": "Esse é o valor da camiseta"},
+    {"key": "key_calca", "value": "Esse é o valor da calça"},
+    {"key": "key_tenis", "value": "Esse é o valor do tênis"}
+],
+"key_bola_de_futebol": [
+    {"key": "key_meiao", "value": "Esse é o valor do meião"},
+    {"key": "key_camisa_de_futebol", "value": "Esse é o valor da camisa de futebol"},
+    {"key": "key_caneleira", "value": "Esse é o valor da caneleira"}
+],
+"key_ihpone": [
+    {"key": "key_capa_de_ihpone", "value": "Esse é o valor da capa de iphone"},
+    {"key": "key_fone_de_ouvido", "value": "Esse é o valor do fone de ouvido"},
+    {"key": "key_carregador", "value": "Esse é o valor do carregador"},
+    {"key": "key_apple_watch", "value": "Esse é o valor do apple watch"}
+],
+"key_curso": [
+    {"key": "key_livro", "value": "Esse é o valor do livro"},
+    {"key": "key_caderno", "value": "Esse é o valor do caderno"},
+    {"key": "key_mochila", "value": "Esse é o valor da mochila"},
+    {"key": "key_caneta", "value": "Esse é o valor da caneta"}
+]
+}
