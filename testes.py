@@ -18,9 +18,7 @@ class TestAdaptiveCache(unittest.TestCase):
         # Cria uma nova instância do cache para cada teste
         self.cache = AdaptiveCache(max_memory_mb=1000, compression_threshold_kb=1)
 
-# -----------------
-# Testes do método put()
-# -----------------
+#testes de put 
 
     def test_put_adds_new_item(self):
         """Testa se o método put adiciona um novo item ao cache."""
@@ -55,9 +53,7 @@ class TestAdaptiveCache(unittest.TestCase):
         self.assertIn("new_key", self.cache.cache_data)
         print("CONFIRMA QUE A KEY NOVA FOI ADICIONADA: ", self.cache.get("new_key"), '\n')
 
-# -----------------
-# Testes do método get()
-# -----------------
+#testes de get
 
     def test_get_returns_none_for_non_existent_key(self):
         """Testa se get retorna None para uma chave inexistente."""

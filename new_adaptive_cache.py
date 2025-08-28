@@ -48,7 +48,9 @@ class AdaptiveCache:
         self._start_access_monitor()
 
     def _compress_data(self, data: str) -> bytes:
-        return zlib.compress(data)
+        if type(data) is bytes:
+            data = data.decode('utf-8')
+        return zlib.compress(data.encode('utf-8'))
         
     def _decompress_data(self, data: bytes) -> str:
         return zlib.decompress(data).decode('utf-8')
@@ -76,21 +78,21 @@ class AdaptiveCache:
                         print(f"Chave '{key}' expirou por TTL.")
                         keys_to_remove.append(key)
                         self.lru_queue.remove(key)
-                        del self.cache_data[key]
+                        self.cache_data.pop(key, None)
                         self.current_memory_usage -= sys.getsizeof(data_info['data'])
                 
                     if policy.tti and (last_access_time + policy.tti < now):
                         print(f"Chave '{key}' expirou por TTI.")
                         keys_to_remove.append(key)
                         self.lru_queue.remove(key)
-                        del self.cache_data[key]
+                        self.cache_data.pop(key, None)
                         self.current_memory_usage -= sys.getsizeof(data_info['data'])
                     
                     if policy.max_access and (current_access_count >= policy.max_access):
                         print(f"Chave '{key}' expirou por MAX_ACCESS.")
                         keys_to_remove.append(key)
                         self.lru_queue.remove(key)
-                        del self.cache_data[key]
+                        self.cache_data.pop(key, None)
                         self.current_memory_usage -= sys.getsizeof(data_info['data'])
 
                 while timestamps and timestamps[0] < window_start_time:
@@ -132,7 +134,6 @@ class AdaptiveCache:
         
     def put(self, key: str, value: str, policy: Optional[CachePolicy] = None):
         with self.lock:
-            value = value.encode('utf-8')
             original_size = sys.getsizeof(value)
             stored_value = value
             is_compressed = False
